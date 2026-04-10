@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เมนูอาหารตามสั่ง - Thai Street Food</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        :root {
+            --primary-bg: #111411;
+            --surface-color: rgba(30, 34, 30, 0.7);
+            --surface-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f5f5f5;
+            --text-muted: #b0b5b0;
+            --accent-green: #2ecc71;
+            --accent-orange: #f39c12;
+            --accent-red: #e74c3c;
+            --gradient-1: rgba(46, 204, 113, 0.15);
+            --gradient-2: rgba(231, 76, 60, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Ambient Background Mesh */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 15% 50%, var(--gradient-1), transparent 50%),
+                radial-gradient(circle at 85% 30%, var(--gradient-2), transparent 50%);
+            filter: blur(80px);
+            animation: pulseBg 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseBg {
+            0% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(1.1);
+            }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--accent-orange), var(--accent-red));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 20px rgba(231, 76, 60, 0.3);
+        }
+
+        p.subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        /* Filter Pills */
+        .filter-section {
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .filter-btn {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            color: var(--text-muted);
+            padding: 0.6rem 1.2rem;
+            border-radius: 99px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--text-main);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.2);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: #000;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(46, 204, 113, 0.4);
+        }
+
+        /* Glassmorphism Table Container */
+        .table-container {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            overflow-x: auto;
+            padding: 1px;
+            /* border inner glow */
+            animation: slideUp 0.8s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th,
+        td {
+            padding: 1.25rem 1rem;
+            border-bottom: 1px solid var(--surface-border);
+            white-space: nowrap;
+        }
+
+        th {
+            font-weight: 500;
+            color: var(--accent-orange);
+            background: rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th:first-child {
+            border-top-left-radius: 15px;
+        }
+
+        th:last-child {
+            border-top-right-radius: 15px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr {
+            transition: background 0.2s ease;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .menu-name {
+            font-weight: 500;
+            color: var(--text-main);
+            min-width: 250px;
+        }
+
+        .price-cell {
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .price-value {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .baht {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .empty-cell {
+            color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Skeleton */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent-orange);
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Random Button */
+        .random-btn {
+            background: linear-gradient(45deg, var(--accent-orange), var(--accent-red));
+            border: none;
+            color: #fff;
+            padding: 0.8rem 2rem;
+            border-radius: 99px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .random-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            padding: 2.5rem;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            max-width: 90%;
+            width: 400px;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(90deg, var(--accent-green), #27ae60);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+            color: var(--accent-orange);
+        }
+
+        .modal-loader .spinner {
+            width: 50px;
+            height: 50px;
+            border-width: 4px;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-loader h3 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            animation: pulseText 1s infinite alternate;
+        }
+
+        @keyframes pulseText {
+            from {
+                opacity: 0.6;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) translateY(20px);
+            }
+
+            70% {
+                transform: scale(1.05) translateY(-5px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .random-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            opacity: 0;
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .random-item-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .random-item-detail {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-muted);
+        }
+
+        .modal-close {
+            margin-top: 1.5rem;
+            background: transparent;
+            border: 1px solid var(--text-muted);
+            color: var(--text-muted);
+            padding: 0.5rem 1.5rem;
+            border-radius: 99px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            th,
+            td {
+                padding: 1rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-bg"></div>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="random-modal">
+        <div class="modal-content">
+            <h2 class="modal-title">เมนูสุ่มของคุณ</h2>
+            <div id="random-results"></div>
+            <button class="modal-close" id="modal-close-btn">ปิด (Close)</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>อร่อยเด็ดตามสั่ง</h1>
+            <p class="subtitle">เลือกเมนูและเนื้อสัตว์ที่คุณชื่นชอบ</p>
+        </header>
+
+        <main id="app">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>กำลังโหลดเมนู...</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const files = ['menu_1.csv', 'menu_2.csv'];
+            let allMeats = new Set();
+            let consolidatedData = [];
+            let activeFilters = new Set();
+
+            const appContainer = document.getElementById('app');
+            const modalOverlay = document.getElementById('random-modal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const randomResultsContainer = document.getElementById('random-results');
+
+            modalCloseBtn.addEventListener('click', () => {
+                modalOverlay.classList.remove('active');
+            });
+
+            // --- Normalization Logic ---
+            function normalizeMeatName(name) {
+                let lower = name.trim();
+                // Fix typos or merge identical categories
+                if (lower === 'ปลากระพง' || lower === 'ปลากะพง') {
+                    return 'ปลากะพง';
+                }
+                return lower;
+            }
+
+            try {
+                // Fetch and parse both files
+                for (const file of files) {
+                    const response = await fetch(file);
+                    if (!response.ok) throw new Error(`Could not fetch ${file}`);
+                    const csvText = await response.text();
+
+                    Papa.parse(csvText, {
+                        header: false,
+                        skipEmptyLines: true,
+                        complete: function (results) {
+                            const rows = results.data;
+                            if (rows.length < 2) return;
+
+                            // First row is header
+                            const rawHeaders = rows[0];
+                            const meatHeaders = rawHeaders.slice(1); // skip 'เมนู / เลือกเนื้อสัตว์'
+
+                            // Track unique column map for this file
+                            const fileMeatMap = meatHeaders.map((h, i) => {
+                                const normalized = normalizeMeatName(h);
+                                allMeats.add(normalized);
+                                return { index: i + 1, meat: normalized };
+                            });
+
+                            // Process rows
+                            for (let i = 1; i < rows.length; i++) {
+                                const row = rows[i];
+                                const menuName = row[0]?.trim();
+                                if (!menuName) continue; // Skip empty rows
+
+                                const itemObj = { menu: menuName, prices: {} };
+
+                                fileMeatMap.forEach(mapping => {
+                                    const price = row[mapping.index]?.trim();
+                                    if (price) {
+                                        itemObj.prices[mapping.meat] = price;
+                                    }
+                                });
+
+                                // Only add if it has at least one price
+                                if (Object.keys(itemObj.prices).length > 0) {
+                                    consolidatedData.push(itemObj);
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Render UI
+                renderUI();
+
+            } catch (error) {
+                console.error("Error loading menus:", error);
+                appContainer.innerHTML = `<div style="color:var(--accent-red); text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>`;
+            }
+
+            function renderUI() {
+                const meatsArray = Array.from(allMeats);
+                // Try to put common meats first
+                const preferredOrder = ['ไก่', 'หมูชิ้น / หมูสับ', 'หมูกรอบ', 'เนื้อสับ / ชิ้น', 'กุ้ง / ปลาหมึก', 'ทะเล', 'ปลากะพง', 'ปู', 'เต้าหู้ไข่'];
+                meatsArray.sort((a, b) => {
+                    const idxA = preferredOrder.indexOf(a) !== -1 ? preferredOrder.indexOf(a) : 99;
+                    const idxB = preferredOrder.indexOf(b) !== -1 ? preferredOrder.indexOf(b) : 99;
+                    return idxA - idxB;
+                });
+
+                // Initialize all filters to ON
+                activeFilters = new Set(meatsArray);
+
+                // Clear loading
+                appContainer.innerHTML = `
+                    <div class="filter-section" id="filters"></div>
+                    <div id="random-btn-container" style="text-align: center; margin-bottom: 2rem;"></div>
+                    <div class="table-container">
+                        <table id="menu-table">
+                            <thead id="table-head"></thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+                `;
+
+                // Render Filters
+                const filtersContainer = document.getElementById('filters');
+
+                // Add 'All' button
+                const allBtn = document.createElement('button');
+                allBtn.className = 'filter-btn active';
+                allBtn.id = 'filter-all-btn';
+                allBtn.textContent = 'แสดงทั้งหมด (All)';
+                allBtn.onclick = () => {
+                    if (activeFilters.size === meatsArray.length) {
+                        activeFilters.clear();
+                    } else {
+                        activeFilters = new Set(meatsArray);
+                    }
+                    updateFilterUI(meatsArray);
+                    renderTable(meatsArray);
+                };
+                filtersContainer.appendChild(allBtn);
+
+                // Add meat buttons
+                meatsArray.forEach(meat => {
+                    const btn = document.createElement('button');
+                    btn.className = 'filter-btn active';
+                    btn.dataset.meat = meat;
+                    btn.textContent = meat;
+                    btn.onclick = () => {
+                        if (activeFilters.has(meat)) {
+                            activeFilters.delete(meat);
+                        } else {
+                            activeFilters.add(meat);
+                        }
+                        updateFilterUI(meatsArray);
+                        renderTable(meatsArray);
+                    };
+                    filtersContainer.appendChild(btn);
+                });
+
+                // Add Random Button
+                const randomContainer = document.getElementById('random-btn-container');
+                const randomBtn = document.createElement('button');
+                randomBtn.className = 'random-btn';
+                randomBtn.innerHTML = '🎲 สุ่ม 3 เมนู (Random)';
+                randomBtn.onclick = () => getRandomMenus(meatsArray);
+                randomContainer.appendChild(randomBtn);
+
+                // Initial Render
+                renderTable(meatsArray);
+
+                function updateFilterUI(allMeatsArray) {
+                    const allBtn = document.getElementById('filter-all-btn');
+                    if (activeFilters.size === allMeatsArray.length) {
+                        allBtn.classList.add('active');
+                    } else {
+                        allBtn.classList.remove('active');
+                    }
+
+                    document.querySelectorAll('.filter-btn[data-meat]').forEach(btn => {
+                        const m = btn.dataset.meat;
+                        if (activeFilters.has(m)) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                }
+            }
+
+            function renderTable(allMeatsArray) {
+                const thead = document.getElementById('table-head');
+                const tbody = document.getElementById('table-body');
+
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+
+                // Columns to show based on selected active filters
+                const columnsToShow = allMeatsArray.filter(meat => activeFilters.has(meat));
+
+                // Render Header
+                const trHead = document.createElement('tr');
+                const thMenu = document.createElement('th');
+                thMenu.textContent = 'เมนูอาหาร';
+                trHead.appendChild(thMenu);
+
+                columnsToShow.forEach(meat => {
+                    const th = document.createElement('th');
+                    th.textContent = meat;
+                    th.className = 'price-cell';
+                    trHead.appendChild(th);
+                });
+                thead.appendChild(trHead);
+
+                if (columnsToShow.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="1" style="text-align:center; padding: 3rem;">กรุณาเลือกเนื้อสัตว์อย่างน้อย 1 อย่าง</td></tr>`;
+                    return;
+                }
+
+                // Filter data
+                const rowsToShow = consolidatedData.filter(item => {
+                    return columnsToShow.some(meat => item.prices[meat] !== undefined);
+                });
+
+                if (rowsToShow.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${columnsToShow.length + 1}" style="text-align:center; padding: 3rem;">ไม่พบเมนู</td></tr>`;
+                    return;
+                }
+
+                // Render Rows
+                rowsToShow.forEach(item => {
+                    const tr = document.createElement('tr');
+
+                    const tdMenu = document.createElement('td');
+                    tdMenu.className = 'menu-name';
+                    tdMenu.textContent = item.menu;
+                    tr.appendChild(tdMenu);
+
+                    columnsToShow.forEach(meat => {
+                        const tdInfo = document.createElement('td');
+                        tdInfo.className = 'price-cell';
+                        const price = item.prices[meat];
+                        if (price) {
+                            tdInfo.innerHTML = `<span class="price-value">${price}</span> <span class="baht">฿</span>`;
+                        } else {
+                            tdInfo.innerHTML = `<span class="empty-cell">-</span>`;
+                        }
+                        tr.appendChild(tdInfo);
+                    });
+
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function getRandomMenus(allMeatsArray) {
+                const columnsToShow = allMeatsArray.filter(meat => activeFilters.has(meat));
+                if (columnsToShow.length === 0) {
+                    alert('กรุณาเลือกเนื้อสัตว์อย่างน้อย 1 อย่างก่อนสุ่ม');
+                    return;
+                }
+
+                // Filter data to only valid items for currently active meats
+                let possibleOptions = [];
+                consolidatedData.forEach(item => {
+                    columnsToShow.forEach(meat => {
+                        if (item.prices[meat] !== undefined) {
+                            possibleOptions.push({
+                                menu: item.menu,
+                                meat: meat,
+                                price: item.prices[meat]
+                            });
+                        }
+                    });
+                });
+
+                if (possibleOptions.length === 0) {
+                    alert('ไม่พบเมนูในตัวกรองปัจจุบัน');
+                    return;
+                }
+
+                // Randomly pick up to 3 options (without replacement)
+                let picked = [];
+                let picksCount = Math.min(3, possibleOptions.length);
+                let optionsCopy = [...possibleOptions];
+                for (let i = 0; i < picksCount; i++) {
+                    const randIdx = Math.floor(Math.random() * optionsCopy.length);
+                    picked.push(optionsCopy[randIdx]);
+                    optionsCopy.splice(randIdx, 1);
+                }
+
+                // Show Loader
+                randomResultsContainer.innerHTML = `
+                    <div class="modal-loader">
+                        <div class="spinner"></div>
+                        <h3>กำลังสุ่มเมนูเด็ด...</h3>
+                    </div>
+                `;
+                modalOverlay.classList.add('active');
+                modalCloseBtn.style.display = 'none';
+
+                // Add magical delay and animation
+                setTimeout(() => {
+                    randomResultsContainer.innerHTML = '';
+                    picked.forEach((p, index) => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'random-item';
+                        itemDiv.style.animationDelay = `${index * 0.3}s`; // Stagger effect
+                        itemDiv.innerHTML = `
+                            <div class="random-item-name">${p.menu}</div>
+                            <div class="random-item-detail">
+                                <span>เนื้อสัตว์: ${p.meat}</span>
+                                <span><span class="price-value">${p.price}</span> <span class="baht">฿</span></span>
+                            </div>
+                        `;
+                        randomResultsContainer.appendChild(itemDiv);
+                    });
+
+                    modalCloseBtn.style.display = 'inline-block';
+                }, 800); // 0.8s delay
+            }
+        });
+    </script>
+</body>
+
+</html>
