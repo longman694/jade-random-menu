@@ -487,16 +487,6 @@
                 modalOverlay.classList.remove('active');
             });
 
-            // --- Normalization Logic ---
-            function normalizeMeatName(name) {
-                let lower = name.trim();
-                // Fix typos or merge identical categories
-                if (lower === 'ปลากระพง' || lower === 'ปลากะพง') {
-                    return 'ปลากะพง';
-                }
-                return lower;
-            }
-
             try {
                 // Fetch and parse both files
                 for (const file of files) {
@@ -517,9 +507,8 @@
 
                             // Track unique column map for this file
                             const fileMeatMap = meatHeaders.map((h, i) => {
-                                const normalized = normalizeMeatName(h);
-                                allMeats.add(normalized);
-                                return { index: i + 1, meat: normalized };
+                                allMeats.add(h);
+                                return { index: i + 1, meat: h };
                             });
 
                             // Process rows
@@ -736,14 +725,17 @@
                     return;
                 }
 
-                // Randomly pick up to 3 options (without replacement)
+                // Randomly pick up to 3 options ensuring unique menu names
                 let picked = [];
-                let picksCount = Math.min(3, possibleOptions.length);
                 let optionsCopy = [...possibleOptions];
-                for (let i = 0; i < picksCount; i++) {
+                
+                while (picked.length < 3 && optionsCopy.length > 0) {
                     const randIdx = Math.floor(Math.random() * optionsCopy.length);
-                    picked.push(optionsCopy[randIdx]);
-                    optionsCopy.splice(randIdx, 1);
+                    const chosen = optionsCopy[randIdx];
+                    picked.push(chosen);
+                    
+                    // Filter out any remaining options with the same menu name
+                    optionsCopy = optionsCopy.filter(opt => opt.menu !== chosen.menu);
                 }
 
                 // Show Loader
